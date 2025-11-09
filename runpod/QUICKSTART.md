@@ -1,98 +1,151 @@
-# Quick Start Guide - II-Search-4B on RunPod
+# Quick Start Guide - II-Search-4B Personal Deployment
 
-Get your II-Search-4B model running on RunPod in under 30 minutes.
+Deploy II-Search-4B on a single GPU in 15 minutes for personal testing.
 
-## Prerequisites Check
-
-- [ ] RunPod account created at [runpod.io](https://runpod.io)
-- [ ] Docker installed locally
-- [ ] Docker Hub or GHCR account
-- [ ] Credit card added to RunPod for GPU access
-- [ ] (Optional) HuggingFace token if model is gated
-
-## Step 1: Build Docker Image (10 minutes)
+## ⚡ Quick Deploy (For Impatient Users)
 
 ```bash
-# Clone repository
-git clone <your-repo>
-cd runpod
+# 1. Build (5 min)
+cd runpod/builder && export REGISTRY=docker.io/yourusername && ./build.sh
 
-# Configure
-export REGISTRY=docker.io/yourusername  # Your Docker registry
-export HF_TOKEN=hf_xxxxx                # If model is gated
+# 2. Deploy on RunPod Dashboard:
+#    - Image: docker.io/yourusername/ii-search-4b-runpod:latest
+#    - GPU: 1x RTX 4090 (budget) or 1x A100 (performance)
+#    - GPUs per worker: 1
+#    - Idle timeout: 300 seconds
+#    - Max workers: 1
+#    - Environment variables: Set TENSOR_PARALLEL_SIZE=1, MAX_MODEL_LEN=32768
+
+# 3. Test (2 min)
+cd ../tests && python test_endpoint.py --endpoint-id YOUR_ID --api-key YOUR_KEY --run-tests
+```
+
+---
+
+## 📋 Prerequisites (2 minutes)
+
+### Required
+- [ ] RunPod account at [runpod.io](https://runpod.io)
+- [ ] Docker installed locally
+- [ ] Docker Hub account (free)
+
+### Optional
+- [ ] HuggingFace token (if model is gated)
+- [ ] Python 3.11+ for local testing
+
+---
+
+## Step 1: Build Docker Image (5 minutes)
+
+```bash
+# Navigate to builder directory
+cd runpod/builder
+
+# Set your Docker registry
+export REGISTRY=docker.io/yourusername  # Replace with your Docker Hub username
+
+# Optional: Set HuggingFace token if model is gated
+export HF_TOKEN=hf_xxxxxxxxxxxxx
 
 # Build and push
-cd builder
 ./build.sh v1.0
 ```
 
-**Expected output**:
+**Expected output:**
 ```
 ✅ Build complete!
 ✅ Push complete!
 Use this image in RunPod: docker.io/yourusername/ii-search-4b-runpod:v1.0
 ```
 
+---
+
 ## Step 2: Create RunPod Endpoint (5 minutes)
 
-### Via Dashboard (Easiest):
+### A. Go to RunPod Dashboard
 
-1. Go to: https://runpod.io/console/serverless
-
+1. Navigate to: https://runpod.io/console/serverless
 2. Click **"+ New Endpoint"**
 
-3. Fill in **Basic Settings**:
-   - **Name**: `II-Search-4B`
-   - **Container Image**: `docker.io/yourusername/ii-search-4b-runpod:v1.0`
-   - **Container Disk**: `20 GB`
+### B. Basic Settings
 
-4. Configure **GPU Settings**:
-   - **GPU Type**: `A100 80GB` (or `H100` if available)
-   - **GPUs Per Worker**: `8` ⚠️
-   - **Min Active Workers**: `0`
-   - **Max Workers**: `1` (for testing)
+| Field | Value |
+|-------|-------|
+| **Endpoint Name** | `II-Search-4B-Personal` |
+| **Container Image** | `docker.io/yourusername/ii-search-4b-runpod:v1.0` |
+| **Container Disk** | `15 GB` |
 
-5. Set **Scaling**:
-   - **Scaling Type**: `Queue Delay`
-   - **Idle Timeout**: `900` seconds
-   - **Execution Timeout**: `600` seconds
+### C. GPU Settings
 
-6. Add **Environment Variables** (click "+ Add Environment Variable" for each):
+| Field | Value | Notes |
+|-------|-------|-------|
+| **GPU Type** | `RTX4090` or `A100 80GB` | RTX 4090 is 57% cheaper |
+| **GPUs Per Worker** | `1` | ⚠️ Single GPU only |
+| **Min Workers** | `0` | Scale to zero |
+| **Max Workers** | `1` | Personal use - one instance max |
 
-   | Key | Value |
-   |-----|-------|
-   | `MODEL_NAME` | `Intelligent-Internet/II-Search-4B` |
-   | `TENSOR_PARALLEL_SIZE` | `8` |
-   | `MAX_MODEL_LEN` | `131072` |
-   | `ENABLE_REASONING` | `true` |
-   | `REASONING_PARSER` | `deepseek_r1` |
+### D. Scaling Settings
 
-7. **(Recommended)** Enable **Network Volume**:
-   - Toggle "Network Volume" to ON
-   - **Size**: `50 GB`
-   - **Mount Path**: `/runpod-volume`
+| Field | Value |
+|-------|-------|
+| **Scaling Type** | `Queue Delay` |
+| **Idle Timeout** | `300` seconds (5 minutes) |
+| **Execution Timeout** | `300` seconds |
 
-8. Click **"Deploy"**
+### E. Environment Variables
 
-9. Wait for endpoint to initialize (5-15 minutes for first run)
+Click "+ Add Environment Variable" for each:
 
-## Step 3: Get Your Endpoint Details (1 minute)
+| Variable | Value |
+|----------|-------|
+| `TENSOR_PARALLEL_SIZE` | `1` |
+| `MAX_MODEL_LEN` | `32768` |
+| `GPU_MEMORY_UTILIZATION` | `0.90` |
+| `ENABLE_REASONING` | `true` |
+| `REASONING_PARSER` | `deepseek_r1` |
 
-Once deployed, note:
-- **Endpoint ID**: Shows in URL: `https://api.runpod.ai/v2/YOUR_ENDPOINT_ID`
-- **API Key**: Found in RunPod Settings → API Keys
+*Optional: Add `HF_TOKEN` if model requires authentication*
+
+### F. Network Volume (Highly Recommended)
+
+| Field | Value |
+|-------|-------|
+| **Enable Network Volume** | `Yes` |
+| **Size** | `30 GB` |
+| **Mount Path** | `/runpod-volume` |
+
+**Cost**: ~$3/month, saves 2-5 minutes on every cold start
+
+### G. Deploy
+
+Click **"Deploy"** and wait 30-60 seconds for initialization.
+
+---
+
+## Step 3: Get Endpoint Details (1 minute)
+
+Once deployed:
+
+1. **Endpoint ID**: Found in the URL or endpoint details page
+2. **API Key**: Go to Settings → API Keys → Copy
+
+---
 
 ## Step 4: Test Your Endpoint (2 minutes)
 
-### Quick Test (cURL):
+### Option 1: Quick cURL Test
 
 ```bash
-curl -X POST "https://api.runpod.ai/v2/YOUR_ENDPOINT_ID/runsync" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+# Replace with your actual values
+ENDPOINT_ID="your_endpoint_id_here"
+API_KEY="your_api_key_here"
+
+curl -X POST "https://api.runpod.ai/v2/${ENDPOINT_ID}/runsync" \
+  -H "Authorization: Bearer ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
     "input": {
-      "prompt": "What is 2+2? Think step by step.",
+      "prompt": "What is 2+2? Explain your reasoning.",
       "sampling_params": {
         "temperature": 0.7,
         "max_tokens": 256
@@ -101,146 +154,206 @@ curl -X POST "https://api.runpod.ai/v2/YOUR_ENDPOINT_ID/runsync" \
   }'
 ```
 
-### Python Test:
-
-```python
-import requests
-
-ENDPOINT_ID = "your_endpoint_id"
-API_KEY = "your_api_key"
-
-response = requests.post(
-    f"https://api.runpod.ai/v2/{ENDPOINT_ID}/runsync",
-    headers={
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    },
-    json={
-        "input": {
-            "prompt": "Explain quantum computing simply.",
-            "sampling_params": {
-                "temperature": 0.7,
-                "max_tokens": 512
-            }
-        }
-    }
-)
-
-result = response.json()
-print("Text:", result["output"]["text"])
-print("Reasoning:", result["output"]["reasoning"])
-```
-
-### Automated Test:
+### Option 2: Python Test Script
 
 ```bash
-cd runpod/tests
-pip install requests
+# Set environment variables
+export RUNPOD_API_KEY="your_api_key_here"
+export RUNPOD_ENDPOINT_ID="your_endpoint_id_here"
 
+# Run test suite
+cd runpod/tests
 python test_endpoint.py \
-  --endpoint-id YOUR_ENDPOINT_ID \
-  --api-key YOUR_API_KEY \
+  --endpoint-id $RUNPOD_ENDPOINT_ID \
+  --api-key $RUNPOD_API_KEY \
   --run-tests
 ```
 
-## Expected Results
+### Option 3: Single Prompt Test
 
-### First Request (Cold Start):
-- ⏱️ **Time**: 5-15 minutes (without network volume)
-- ⏱️ **Time**: 30-90 seconds (with network volume)
-- 📥 **Model loading**: Downloads from HuggingFace
-- 🔧 **Initialization**: vLLM engine starts across 8 GPUs
-
-### Subsequent Requests (Warm):
-- ⏱️ **Time**: 2-10 seconds (depending on prompt length)
-- ⚡ **Fast**: Model already loaded in memory
-
-### After 15 Minutes Idle:
-- 💤 **Auto-scaling**: Worker shuts down
-- 💰 **No charges**: You stop paying for GPUs
-- ⏱️ **Next request**: Cold start again
-
-## Troubleshooting Quick Fixes
-
-### "Out of Memory" Error
 ```bash
-# Reduce context length in RunPod environment variables:
-MAX_MODEL_LEN=32768  # Instead of 131072
+python test_endpoint.py \
+  --endpoint-id $RUNPOD_ENDPOINT_ID \
+  --api-key $RUNPOD_API_KEY \
+  --prompt "Explain quantum entanglement in simple terms."
 ```
 
-### Cold Starts Too Slow
+---
+
+## ✅ Expected Results
+
+### First Request (Cold Start)
+- ⏱️ **Without network volume**: 2-5 minutes
+- ⏱️ **With network volume**: 20-30 seconds
+- 📦 Model downloads and initializes
+
+### Subsequent Requests (Warm)
+- ⏱️ **Response time**: 2-5 seconds
+- ⚡ **Tokens/second**: 30-60 (depends on GPU)
+- 💬 **Includes reasoning**: Yes (if enabled)
+
+### After 5 Minutes Idle
+- 💤 Worker shuts down automatically
+- 💰 No charges while idle
+- 🔄 Next request triggers cold start
+
+---
+
+## 💰 Cost Breakdown
+
+### GPU Options
+
+**RTX 4090 24GB** (Budget Choice):
+- Cost: $2.48/hour
+- Per request (5min idle): $0.21
+- 1 hour daily: $74/month
+- **Best for**: Light testing, budget-conscious
+
+**A100 80GB** (Best Performance):
+- Cost: $5.76/hour
+- Per request (5min idle): $0.48
+- 1 hour daily: $173/month
+- **Best for**: Faster responses, extended context
+
+### Usage Examples
+
+**10 requests/week**:
+- RTX 4090: ~$8/month
+- A100: ~$20/month
+
+**5 requests/day**:
+- RTX 4090: ~$32/month
+- A100: ~$72/month
+
+**1 hour active daily**:
+- RTX 4090: ~$74/month
+- A100: ~$173/month
+
+---
+
+## 🛠️ Quick Troubleshooting
+
+### Cold Start Taking Forever (>5 minutes)?
+**Solution**: Enable network volume (Step 2F above)
+
+### "Out of Memory" Error?
+**Solution**: Reduce context length:
 ```bash
-# Enable Network Volume in endpoint settings (if not already)
-# Or increase idle timeout to reduce frequency:
-Idle Timeout: 1800  # 30 minutes
+# In environment variables:
+MAX_MODEL_LEN=16384  # From 32768
+GPU_MEMORY_UTILIZATION=0.85  # From 0.90
 ```
 
-### No Reasoning in Output
+### No Reasoning in Response?
+**Solution**: Check environment variables:
 ```bash
-# Verify environment variables are set:
 ENABLE_REASONING=true
 REASONING_PARSER=deepseek_r1
 ```
 
-## Cost Awareness
-
-⚠️ **IMPORTANT**: This configuration costs approximately:
-- **$46/hour** when workers are active
-- **$0/hour** when scaled to zero
-
-With 15-minute idle timeout:
-- After each request, worker stays active for 15 more minutes
-- Multiple requests within 15 minutes = charged once
-- Isolated requests = charged for 15 min each
-
-**Example Daily Cost**:
-- 10 requests, well-spaced = 10 × 15 min = 2.5 hours = **$115/day**
-- 10 requests, within 15 min window = 15 min = **$11.50/day**
-
-## Next Steps
-
-✅ **Basic Setup Complete!** Now you can:
-
-1. **Optimize Costs**: Read [DEPLOYMENT.md](DEPLOYMENT.md) for cost optimization
-2. **Identify Issues**: Check [POTENTIAL_ISSUES.md](POTENTIAL_ISSUES.md)
-3. **Integrate**: Use the endpoint in your application
-4. **Scale**: Increase `max_workers` based on traffic
-5. **Monitor**: Set up alerts in RunPod dashboard
-
-## Common Configuration Changes
-
-### Reduce GPU Count (Lower Cost):
-```bash
-# In RunPod environment variables:
-TENSOR_PARALLEL_SIZE=2  # Instead of 8
-# Also change "GPUs Per Worker" to 2 in GPU settings
-```
-
-### Shorter Context (Less Memory):
-```bash
-MAX_MODEL_LEN=32768  # Instead of 131072
-```
-
-### Faster Scaling Down:
-```bash
-Idle Timeout: 300  # 5 minutes instead of 15
-```
-
-### Keep Always Active (No Cold Starts):
-```bash
-Min Active Workers: 1  # Instead of 0
-# ⚠️ Costs $46/hour continuously!
-```
-
-## Support Resources
-
-- 📖 **Full Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- ⚠️ **Issues**: [POTENTIAL_ISSUES.md](POTENTIAL_ISSUES.md)
-- 🌐 **RunPod Docs**: https://docs.runpod.io
-- 💬 **RunPod Discord**: https://discord.gg/runpod
+### Costs Too High?
+**Solution**:
+1. Use RTX 4090 instead of A100
+2. Reduce idle timeout to 180 seconds (3 minutes)
+3. Check you set max_workers=1
 
 ---
 
-**Estimated Total Time**: 20-30 minutes
-**Difficulty**: Intermediate
-**Cost**: ~$46/hour when active (scales to $0 when idle)
+## 🎯 What Can You Do Now?
+
+### 1. Tool Use & Function Calling
+```python
+prompt = """
+Available tools:
+- calculate(expression: str) -> float
+- search(query: str) -> str
+
+Question: What is 127 * 89?
+"""
+```
+
+### 2. RAG & Vector Store Integration
+```python
+# Retrieve relevant context
+context = your_vector_db.search(query, top_k=5)
+
+# Query with context
+prompt = f"Context: {context}\n\nQuestion: {query}"
+response = query_model(prompt)
+```
+
+### 3. Reasoning Tasks
+```python
+prompt = """
+Solve this step by step:
+A train travels 120 km in 2 hours. What is its speed in m/s?
+"""
+text, reasoning = query_model(prompt)
+print(f"Reasoning:\n{reasoning}")
+print(f"Answer:\n{text}")
+```
+
+---
+
+## 📊 Performance Expectations
+
+### RTX 4090 24GB
+- **Context**: 16K tokens
+- **Speed**: ~30-40 tokens/second
+- **Latency**: ~3-5 seconds for 512 tokens
+- **Cost**: $0.21 per request
+
+### A100 80GB
+- **Context**: 32K tokens
+- **Speed**: ~50-60 tokens/second
+- **Latency**: ~2-3 seconds for 512 tokens
+- **Cost**: $0.48 per request
+
+---
+
+## 🚀 Next Steps
+
+1. ✅ **Integrate into your app**: Use the API endpoint in your code
+2. ✅ **Experiment with prompts**: Test different reasoning tasks
+3. ✅ **Try tool use**: Implement function calling
+4. ✅ **Connect vector store**: Build RAG applications
+5. ✅ **Monitor costs**: Check RunPod dashboard regularly
+
+---
+
+## 📚 Additional Resources
+
+- **Full Guide**: See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed configuration
+- **Configuration**: See [configs/runpod-config.json](configs/runpod-config.json) for templates
+- **RunPod Docs**: https://docs.runpod.io
+- **Model Card**: https://huggingface.co/Intelligent-Internet/II-Search-4B
+
+---
+
+## ❓ Common Questions
+
+**Q: Why single GPU if the start command specifies tensor-parallel-size 8?**
+A: The original command was for production scale. A 4B model only needs ~8GB VRAM and fits easily on one GPU. Single GPU is perfect for personal use.
+
+**Q: Can I use an even cheaper GPU?**
+A: Yes! Try L40S (48GB, $3.44/hr) or even RTX 3090 (24GB, ~$2/hr) for budget testing.
+
+**Q: What if I need longer context?**
+A: On A100 80GB, you can increase `MAX_MODEL_LEN` to 65536 (65K tokens). Just adjust the environment variable.
+
+**Q: Will it work for production?**
+A: This config is optimized for personal testing. For production, see DEPLOYMENT.md for scaling strategies.
+
+**Q: How do I reduce costs further?**
+A:
+1. Use RTX 4090 instead of A100 (57% cheaper)
+2. Reduce idle timeout to 180s
+3. Use the endpoint less frequently
+4. Consider spot instances if available
+
+---
+
+**Total Setup Time**: ~15 minutes
+**Difficulty**: Beginner-friendly
+**Monthly Cost**: $74-173 (1hr daily) or $8-20 (10 requests/week)
+**Perfect For**: Personal testing, development, tool use, RAG applications
