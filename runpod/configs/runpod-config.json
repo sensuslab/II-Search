@@ -1,0 +1,111 @@
+{
+  "endpoint": {
+    "name": "II-Search-4B-vLLM",
+    "description": "II-Search-4B model with DeepSeek-R1 reasoning parser on vLLM",
+    "container": {
+      "image": "your-registry/ii-search-4b-runpod:latest",
+      "disk_size_gb": 20
+    },
+    "gpu": {
+      "type": "A100-80GB",
+      "count_per_worker": 8,
+      "memory_utilization": 0.95
+    },
+    "scaling": {
+      "type": "queue_delay",
+      "min_workers": 0,
+      "max_workers": 3,
+      "idle_timeout_seconds": 900,
+      "execution_timeout_seconds": 600,
+      "target_queue_latency_ms": 2000
+    },
+    "environment": {
+      "MODEL_NAME": "Intelligent-Internet/II-Search-4B",
+      "SERVED_MODEL_NAME": "II-Search-4B",
+      "TENSOR_PARALLEL_SIZE": "8",
+      "MAX_MODEL_LEN": "131072",
+      "GPU_MEMORY_UTILIZATION": "0.95",
+      "ENABLE_REASONING": "true",
+      "REASONING_PARSER": "deepseek_r1",
+      "ROPE_SCALING": "{\"rope_type\":\"yarn\",\"factor\":1.5,\"original_max_position_embeddings\":98304}",
+      "HF_TOKEN": "<SET_IF_MODEL_IS_GATED>"
+    },
+    "network_volume": {
+      "enabled": true,
+      "size_gb": 50,
+      "mount_path": "/runpod-volume"
+    },
+    "advanced": {
+      "enable_logging": true,
+      "log_level": "INFO",
+      "health_check_path": "/health",
+      "health_check_interval_seconds": 30
+    }
+  },
+  "alternative_configs": {
+    "conservative": {
+      "description": "Lower cost configuration for testing",
+      "gpu": {
+        "type": "A100-80GB",
+        "count_per_worker": 2
+      },
+      "environment": {
+        "TENSOR_PARALLEL_SIZE": "2",
+        "MAX_MODEL_LEN": "32768"
+      },
+      "scaling": {
+        "idle_timeout_seconds": 300,
+        "max_workers": 1
+      }
+    },
+    "moderate": {
+      "description": "Balanced configuration",
+      "gpu": {
+        "type": "A100-80GB",
+        "count_per_worker": 4
+      },
+      "environment": {
+        "TENSOR_PARALLEL_SIZE": "4",
+        "MAX_MODEL_LEN": "65536"
+      },
+      "scaling": {
+        "idle_timeout_seconds": 600,
+        "max_workers": 2
+      }
+    },
+    "high_availability": {
+      "description": "Production configuration with minimum workers",
+      "gpu": {
+        "type": "H100",
+        "count_per_worker": 8
+      },
+      "scaling": {
+        "min_workers": 1,
+        "max_workers": 5,
+        "idle_timeout_seconds": 1800
+      }
+    }
+  },
+  "notes": [
+    "This configuration uses 8 GPUs per worker - VERY EXPENSIVE (~$46/hour per worker when active)",
+    "Consider starting with 'conservative' config for testing (2 GPUs)",
+    "Enable network_volume for production to reduce cold start times",
+    "Set HF_TOKEN if model requires authentication",
+    "Monitor costs carefully - idle timeout keeps workers running for 15 minutes after last request",
+    "Recommended: Start with max_workers=1 for testing, increase based on demand"
+  ],
+  "cost_estimates": {
+    "8x_A100_80GB": {
+      "per_second": "$0.0128",
+      "per_hour": "$46.08",
+      "per_day_10_percent_duty": "$110.59",
+      "per_month_10_percent_duty": "$3,317.76"
+    },
+    "2x_A100_80GB": {
+      "per_second": "$0.0032",
+      "per_hour": "$11.52",
+      "per_day_10_percent_duty": "$27.65",
+      "per_month_10_percent_duty": "$829.44"
+    }
+  }
+}

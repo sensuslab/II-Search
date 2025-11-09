@@ -1,0 +1,63 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+DEPLOYMENT.md
+POTENTIAL_ISSUES.md
+*.md
+
+# Build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+tests/
+*.test
+.pytest_cache
+
+# Configs (loaded via env vars instead)
+configs/
+
+# Builder scripts
+builder/
+
+# Temporary files
+*.log
+*.tmp
+temp/
+tmp/
+
+# Model cache (downloaded at runtime or via volume)
+models/
+.cache/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Large files
+*.tar
+*.tar.gz
+*.zip
