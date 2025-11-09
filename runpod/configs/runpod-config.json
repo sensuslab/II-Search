@@ -1,111 +1,120 @@
 {
   "endpoint": {
-    "name": "II-Search-4B-vLLM",
-    "description": "II-Search-4B model with DeepSeek-R1 reasoning parser on vLLM",
+    "name": "II-Search-4B-Personal",
+    "description": "Personal testing deployment - Single GPU, minimal config",
     "container": {
       "image": "your-registry/ii-search-4b-runpod:latest",
-      "disk_size_gb": 20
+      "disk_size_gb": 15
     },
     "gpu": {
       "type": "A100-80GB",
-      "count_per_worker": 8,
-      "memory_utilization": 0.95
+      "count_per_worker": 1,
+      "memory_utilization": 0.90
     },
     "scaling": {
       "type": "queue_delay",
       "min_workers": 0,
-      "max_workers": 3,
-      "idle_timeout_seconds": 900,
-      "execution_timeout_seconds": 600,
-      "target_queue_latency_ms": 2000
+      "max_workers": 1,
+      "idle_timeout_seconds": 300,
+      "execution_timeout_seconds": 300,
+      "target_queue_latency_ms": 1000
     },
     "environment": {
       "MODEL_NAME": "Intelligent-Internet/II-Search-4B",
       "SERVED_MODEL_NAME": "II-Search-4B",
-      "TENSOR_PARALLEL_SIZE": "8",
-      "MAX_MODEL_LEN": "131072",
-      "GPU_MEMORY_UTILIZATION": "0.95",
+      "TENSOR_PARALLEL_SIZE": "1",
+      "MAX_MODEL_LEN": "32768",
+      "GPU_MEMORY_UTILIZATION": "0.90",
       "ENABLE_REASONING": "true",
       "REASONING_PARSER": "deepseek_r1",
-      "ROPE_SCALING": "{\"rope_type\":\"yarn\",\"factor\":1.5,\"original_max_position_embeddings\":98304}",
+      "ROPE_SCALING": "{\"rope_type\":\"linear\",\"factor\":2.0}",
       "HF_TOKEN": "<SET_IF_MODEL_IS_GATED>"
     },
     "network_volume": {
       "enabled": true,
-      "size_gb": 50,
+      "size_gb": 30,
       "mount_path": "/runpod-volume"
     },
     "advanced": {
       "enable_logging": true,
-      "log_level": "INFO",
-      "health_check_path": "/health",
-      "health_check_interval_seconds": 30
+      "log_level": "INFO"
     }
   },
   "alternative_configs": {
-    "conservative": {
-      "description": "Lower cost configuration for testing",
+    "rtx4090": {
+      "description": "Budget option - RTX 4090 24GB",
       "gpu": {
-        "type": "A100-80GB",
-        "count_per_worker": 2
+        "type": "RTX4090",
+        "count_per_worker": 1
       },
       "environment": {
-        "TENSOR_PARALLEL_SIZE": "2",
-        "MAX_MODEL_LEN": "32768"
+        "MAX_MODEL_LEN": "16384",
+        "GPU_MEMORY_UTILIZATION": "0.85"
       },
-      "scaling": {
-        "idle_timeout_seconds": 300,
-        "max_workers": 1
-      }
+      "note": "Cheaper but slower, good for light testing"
     },
-    "moderate": {
-      "description": "Balanced configuration",
+    "a5000": {
+      "description": "Balanced option - A5000 24GB",
       "gpu": {
-        "type": "A100-80GB",
-        "count_per_worker": 4
+        "type": "A5000",
+        "count_per_worker": 1
       },
       "environment": {
-        "TENSOR_PARALLEL_SIZE": "4",
-        "MAX_MODEL_LEN": "65536"
-      },
-      "scaling": {
-        "idle_timeout_seconds": 600,
-        "max_workers": 2
+        "MAX_MODEL_LEN": "24576",
+        "GPU_MEMORY_UTILIZATION": "0.88"
       }
     },
-    "high_availability": {
-      "description": "Production configuration with minimum workers",
+    "a100_extended": {
+      "description": "Extended context - A100 80GB with longer context",
       "gpu": {
-        "type": "H100",
-        "count_per_worker": 8
+        "type": "A100-80GB",
+        "count_per_worker": 1
+      },
+      "environment": {
+        "MAX_MODEL_LEN": "65536",
+        "GPU_MEMORY_UTILIZATION": "0.92"
       },
       "scaling": {
-        "min_workers": 1,
-        "max_workers": 5,
-        "idle_timeout_seconds": 1800
+        "idle_timeout_seconds": 600
       }
     }
   },
   "notes": [
-    "This configuration uses 8 GPUs per worker - VERY EXPENSIVE (~$46/hour per worker when active)",
-    "Consider starting with 'conservative' config for testing (2 GPUs)",
-    "Enable network_volume for production to reduce cold start times",
-    "Set HF_TOKEN if model requires authentication",
-    "Monitor costs carefully - idle timeout keeps workers running for 15 minutes after last request",
-    "Recommended: Start with max_workers=1 for testing, increase based on demand"
+    "Personal use configuration - single user, minimal requests",
+    "1 GPU only - perfect for 4B model (~8GB VRAM required)",
+    "Network volume highly recommended for fast cold starts (<30s)",
+    "5-minute idle timeout keeps costs minimal",
+    "Max 1 worker ensures you never pay for multiple instances",
+    "32K context is sufficient for most personal testing needs",
+    "Can handle tool use, prompting, and vector store operations efficiently"
   ],
   "cost_estimates": {
-    "8x_A100_80GB": {
-      "per_second": "$0.0128",
-      "per_hour": "$46.08",
-      "per_day_10_percent_duty": "$110.59",
-      "per_month_10_percent_duty": "$3,317.76"
+    "1x_A100_80GB": {
+      "per_second": "$0.00160",
+      "per_hour": "$5.76",
+      "per_day_1hr_active": "$5.76",
+      "per_month_1hr_daily": "$172.80",
+      "per_request_5min_idle": "$0.48"
     },
-    "2x_A100_80GB": {
-      "per_second": "$0.0032",
-      "per_hour": "$11.52",
-      "per_day_10_percent_duty": "$27.65",
-      "per_month_10_percent_duty": "$829.44"
+    "1x_RTX4090": {
+      "per_second": "$0.00069",
+      "per_hour": "$2.48",
+      "per_day_1hr_active": "$2.48",
+      "per_month_1hr_daily": "$74.40",
+      "per_request_5min_idle": "$0.21"
+    },
+    "1x_A5000": {
+      "per_second": "$0.00079",
+      "per_hour": "$2.84",
+      "per_day_1hr_active": "$2.84",
+      "per_month_1hr_daily": "$85.20",
+      "per_request_5min_idle": "$0.24"
     }
+  },
+  "recommended_setup": {
+    "beginner_budget": "RTX 4090 - $75/month for 1hr daily use",
+    "balanced": "A5000 - $85/month for 1hr daily use",
+    "best_performance": "A100 80GB - $173/month for 1hr daily use",
+    "occasional_use": "Any GPU with network volume - Pay only when testing"
   }
 }

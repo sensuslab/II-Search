@@ -1,6 +1,6 @@
 # RunPod Serverless Dockerfile for II-Search-4B
-# Based on official runpod-workers/worker-vllm template
-# Optimized for Qwen3-4B with DeepSeek-R1 Reasoning Parser
+# Optimized for Personal Use - Single GPU Configuration
+# Qwen3-4B with DeepSeek-R1 Reasoning Parser
 
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
@@ -37,19 +37,19 @@ ENV HF_HOME=/runpod-volume/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/runpod-volume/.cache/huggingface
 ENV HF_DATASETS_CACHE=/runpod-volume/.cache/huggingface/datasets
 
-# Model-specific environment variables
+# Model-specific environment variables (optimized for single GPU)
 ENV MODEL_NAME="Intelligent-Internet/II-Search-4B"
 ENV SERVED_MODEL_NAME="II-Search-4B"
-ENV TENSOR_PARALLEL_SIZE=8
-ENV MAX_MODEL_LEN=131072
-ENV GPU_MEMORY_UTILIZATION=0.95
+ENV TENSOR_PARALLEL_SIZE=1
+ENV MAX_MODEL_LEN=32768
+ENV GPU_MEMORY_UTILIZATION=0.90
 
 # vLLM specific settings for DeepSeek-R1 reasoning
 ENV ENABLE_REASONING="true"
 ENV REASONING_PARSER="deepseek_r1"
 
-# RoPE scaling configuration for extended context
-ENV ROPE_SCALING='{"rope_type":"yarn","factor":1.5,"original_max_position_embeddings":98304}'
+# RoPE scaling configuration (optional for 32K context)
+ENV ROPE_SCALING='{"rope_type":"linear","factor":2.0}'
 
 # Optional: Pre-download model during build (uncomment if baking model into image)
 # Requires HF_TOKEN to be passed as build secret

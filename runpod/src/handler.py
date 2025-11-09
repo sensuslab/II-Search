@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 RunPod Serverless Handler for II-Search-4B with vLLM
+Optimized for Personal Use - Single GPU Configuration
 Supports DeepSeek-R1 Reasoning Parser and auto-scaling
 """
 
@@ -22,19 +23,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Model configuration from environment variables
+# Model configuration from environment variables (optimized for single GPU)
 MODEL_NAME = os.getenv("MODEL_NAME", "Intelligent-Internet/II-Search-4B")
 SERVED_MODEL_NAME = os.getenv("SERVED_MODEL_NAME", "II-Search-4B")
-TENSOR_PARALLEL_SIZE = int(os.getenv("TENSOR_PARALLEL_SIZE", "8"))
-MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", "131072"))
-GPU_MEMORY_UTILIZATION = float(os.getenv("GPU_MEMORY_UTILIZATION", "0.95"))
+TENSOR_PARALLEL_SIZE = int(os.getenv("TENSOR_PARALLEL_SIZE", "1"))
+MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", "32768"))
+GPU_MEMORY_UTILIZATION = float(os.getenv("GPU_MEMORY_UTILIZATION", "0.90"))
 ENABLE_REASONING = os.getenv("ENABLE_REASONING", "true").lower() == "true"
 REASONING_PARSER = os.getenv("REASONING_PARSER", "deepseek_r1")
 
 # RoPE scaling configuration
 import json
 ROPE_SCALING = json.loads(os.getenv("ROPE_SCALING",
-    '{"rope_type":"yarn","factor":1.5,"original_max_position_embeddings":98304}'))
+    '{"rope_type":"linear","factor":2.0}'))
 
 # Initialize vLLM engine
 logger.info(f"Initializing vLLM engine for model: {MODEL_NAME}")
@@ -81,11 +82,11 @@ async def generate_text(prompt: str, sampling_params: Dict[str, Any]) -> AsyncGe
     """
     engine = await initialize_engine()
 
-    # Create sampling parameters
+    # Create sampling parameters (defaults optimized for quality and speed)
     params = SamplingParams(
         temperature=sampling_params.get("temperature", 0.7),
         top_p=sampling_params.get("top_p", 0.9),
-        max_tokens=sampling_params.get("max_tokens", 2048),
+        max_tokens=sampling_params.get("max_tokens", 1024),  # Reduced for faster responses
         stop=sampling_params.get("stop", None),
         frequency_penalty=sampling_params.get("frequency_penalty", 0.0),
         presence_penalty=sampling_params.get("presence_penalty", 0.0),

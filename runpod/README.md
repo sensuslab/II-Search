@@ -1,35 +1,90 @@
-# II-Search-4B RunPod Serverless Deployment
+# II-Search-4B RunPod Serverless - Personal Use Deployment
 
-Deploy the II-Search-4B model (Qwen3-4B fine-tune with DeepSeek-R1 reasoning) on RunPod Serverless with vLLM inference engine and automatic scaling.
+Deploy II-Search-4B (Qwen3-4B with DeepSeek-R1 reasoning) on a single GPU for personal testing and development.
 
-## 🚀 Quick Start
+## 🚀 Quick Start (15 Minutes)
 
 ```bash
-# 1. Clone and navigate
-cd runpod
-
-# 2. Build Docker image
+# 1. Build Docker image
+cd runpod/builder
 export REGISTRY=docker.io/yourusername
-cd builder && ./build.sh v1.0
+./build.sh v1.0
 
-# 3. Deploy on RunPod
-# - Go to https://runpod.io/console/serverless
-# - Create new endpoint with your image
-# - Configure 8 GPUs, 900s idle timeout
-# - Set environment variables (see DEPLOYMENT.md)
+# 2. Deploy on RunPod:
+#    - GPU: 1x A100 80GB (or RTX 4090 for budget)
+#    - Idle timeout: 300s (5 minutes)
+#    - Max workers: 1
 
-# 4. Test
-curl -X POST "https://api.runpod.ai/v2/YOUR_ENDPOINT_ID/runsync" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"input": {"prompt": "Hello, world!"}}'
+# 3. Test
+cd ../tests
+python test_endpoint.py --endpoint-id YOUR_ID --api-key YOUR_KEY --run-tests
 ```
+
+## 💡 Why This Configuration?
+
+This deployment is optimized for **personal use** with:
+
+- ✅ **Single GPU**: 4B model fits comfortably on one GPU
+- ✅ **32K Context**: Sufficient for tools, prompting, and vector store operations
+- ✅ **Auto-scaling**: Scales to zero after 5 minutes of inactivity
+- ✅ **Fast Responses**: ~30-60 tokens/second throughput
+- ✅ **Reasoning Support**: DeepSeek-R1 parser for thinking extraction
+- ✅ **Cost-Effective**: ~$0.48 per request with 5-min idle timeout
+
+## 💰 Cost Estimates (Personal Use)
+
+### GPU Options
+
+| GPU | Cost/Hour | Cost per Request* | Monthly (1hr/day) |
+|-----|-----------|-------------------|-------------------|
+| **RTX 4090 24GB** | $2.48 | $0.21 | **$74** |
+| **A5000 24GB** | $2.84 | $0.24 | $85 |
+| **A100 80GB** | $5.76 | $0.48 | $173 |
+
+_*Assuming 5-minute idle timeout per request_
+
+### Usage Examples
+
+**Light Testing** (10 requests/week):
+- RTX 4090: ~$8/month
+- A100: ~$20/month
+
+**Regular Testing** (5 requests/day):
+- RTX 4090: ~$32/month
+- A100: ~$72/month
+
+**Daily Development** (1 hour active/day):
+- RTX 4090: ~$74/month
+- A100: ~$173/month
+
+## 📋 Requirements
+
+### Cloud Infrastructure
+- RunPod account ([sign up free](https://runpod.io))
+- Docker registry (Docker Hub, GHCR)
+- Network volume recommended (30GB = $3/month)
+
+### Local Development
+- Docker 20.10+
+- Python 3.11+ (for testing)
+
+### Model Access
+- HuggingFace token if model is gated
+
+## 🎯 Features
+
+- **vLLM Inference**: Optimized for speed and efficiency
+- **DeepSeek-R1 Reasoning**: Extract model thinking process
+- **Tool Use Support**: Compatible with function calling and tools
+- **Vector Store Ready**: Works with RAG and embedding workflows
+- **Streaming**: Real-time token streaming support
+- **Auto-scaling**: Zero cost when idle
 
 ## 📁 Project Structure
 
 ```
 runpod/
-├── Dockerfile                 # Docker image for vLLM + RunPod
+├── Dockerfile                 # Single GPU optimized
 ├── requirements.txt           # Python dependencies
 ├── src/
 │   └── handler.py            # RunPod serverless handler
@@ -38,171 +93,193 @@ runpod/
 ├── tests/
 │   └── test_endpoint.py      # Testing utilities
 ├── configs/
-│   └── runpod-config.json    # RunPod configuration template
-├── DEPLOYMENT.md             # Comprehensive deployment guide
-├── POTENTIAL_ISSUES.md       # Issues and troubleshooting
-└── README.md                 # This file
+│   └── runpod-config.json    # Configuration templates
+├── README.md                 # This file
+├── QUICKSTART.md             # Step-by-step guide
+└── DEPLOYMENT.md             # Detailed documentation
 ```
-
-## 🎯 Features
-
-- ✅ **vLLM Inference Engine**: High-throughput, low-latency inference
-- ✅ **DeepSeek-R1 Reasoning Parser**: Extract model reasoning/thinking
-- ✅ **Auto-scaling**: Scale to zero with 15-minute idle timeout
-- ✅ **Extended Context**: Support for up to 131K tokens
-- ✅ **Tensor Parallelism**: Distributed across 8 GPUs
-- ✅ **OpenAI-Compatible API**: Easy integration
-- ✅ **Network Volume Support**: Fast cold starts
-
-## 📋 Requirements
-
-### Infrastructure
-- **RunPod Account** with serverless access
-- **Docker Registry** (Docker Hub, GHCR, etc.)
-- **8x A100 80GB** or **8x H100** GPUs per worker
-
-### Software
-- Docker 20.10+
-- Python 3.11+
-- vLLM 0.8.0+
-- CUDA 12.4+
-
-### Optional
-- HuggingFace Token (if model is gated)
-- RunPod Network Volume (recommended for production)
 
 ## 🔧 Configuration
 
-### Model Parameters
+### Default Settings (Optimized for Personal Use)
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| Model | `Intelligent-Internet/II-Search-4B` | Base model on HuggingFace |
-| Architecture | Qwen3-4B (fine-tuned) | 4B parameters |
-| Context Length | 131,072 tokens | With YARN RoPE scaling |
-| Tensor Parallel | 8 GPUs | Distributed inference |
-| Reasoning | DeepSeek-R1 Parser | Thinking extraction |
+```json
+{
+  "model": "Intelligent-Internet/II-Search-4B",
+  "tensor_parallel_size": 1,
+  "max_context_length": 32768,
+  "gpu_count": 1,
+  "idle_timeout": 300,
+  "max_workers": 1,
+  "gpu_memory_utilization": 0.90
+}
+```
 
-### Scaling Parameters
+### GPU Recommendations
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| Min Workers | 0 | Scale to zero when idle |
-| Max Workers | 3 | Limit concurrent instances |
-| Idle Timeout | 900s (15 min) | Balance cost vs cold starts |
-| Execution Timeout | 600s (10 min) | For long-context requests |
-| Scaling Type | Queue Delay | Responsive to request patterns |
-
-## 💰 Cost Estimates
-
-### Per-Second Pricing (Active Time Only)
-- **8x A100 80GB**: $0.0128/second = $46.08/hour
-- **8x H100**: $0.0192/second = $69.12/hour
-
-### Monthly Estimates
-
-| Usage Pattern | Active Time | Monthly Cost (8x A100) |
-|---------------|-------------|------------------------|
-| **Light** (1h/day) | 30 hours | $1,382 |
-| **Moderate** (6h/day) | 180 hours | $8,294 |
-| **Heavy** (12h/day) | 360 hours | $16,589 |
-| **Always-On** (24h/day) | 720 hours | $33,178 |
-
-> **Note**: With autoscaling, you pay only for active + idle time (up to 15 min after last request)
+| Use Case | GPU | Context | Monthly Cost |
+|----------|-----|---------|--------------|
+| **Budget Testing** | RTX 4090 | 16K | $74 (1hr/day) |
+| **Balanced** | A5000 | 24K | $85 (1hr/day) |
+| **Best Performance** | A100 80GB | 32K | $173 (1hr/day) |
+| **Extended Context** | A100 80GB | 65K | $173 (1hr/day) |
 
 ## 📖 Documentation
 
-- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Complete deployment guide with step-by-step instructions
-- **[POTENTIAL_ISSUES.md](POTENTIAL_ISSUES.md)**: Comprehensive list of potential issues and solutions
+- **[QUICKSTART.md](QUICKSTART.md)**: 15-minute deployment guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Comprehensive setup and configuration
+- **[configs/runpod-config.json](configs/runpod-config.json)**: Configuration templates
 
 ## 🧪 Testing
 
-### Local Testing (Single GPU)
-
+### Quick Test
 ```bash
-# Test vLLM configuration locally first
-docker run --gpus all -p 8000:8000 \
-  -e MODEL_NAME=Intelligent-Internet/II-Search-4B \
-  -e TENSOR_PARALLEL_SIZE=1 \
-  ii-search-4b-runpod:latest
+curl -X POST "https://api.runpod.ai/v2/YOUR_ENDPOINT_ID/runsync" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "prompt": "Explain quantum computing in simple terms.",
+      "sampling_params": {
+        "temperature": 0.7,
+        "max_tokens": 512
+      }
+    }
+  }'
 ```
 
-### RunPod Endpoint Testing
+### Python Integration
+```python
+import requests
 
-See `tests/test_endpoint.py` for automated testing:
+def query_model(prompt: str, max_tokens: int = 512):
+    response = requests.post(
+        f"https://api.runpod.ai/v2/{ENDPOINT_ID}/runsync",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json={
+            "input": {
+                "prompt": prompt,
+                "sampling_params": {
+                    "temperature": 0.7,
+                    "max_tokens": max_tokens
+                }
+            }
+        }
+    )
+    result = response.json()
+    return result["output"]["text"], result["output"]["reasoning"]
 
-```bash
-python tests/test_endpoint.py \
-  --endpoint-id YOUR_ENDPOINT_ID \
-  --api-key YOUR_API_KEY
+# Example
+text, reasoning = query_model("What is 2+2? Think step by step.")
+print(f"Answer: {text}")
+print(f"Reasoning: {reasoning}")
 ```
 
-## ⚠️ Important Warnings
+## ⚠️ Important Notes
 
-### 1. **High GPU Cost**
-Using 8 GPUs costs **$46/hour when active**. Consider starting with 2-4 GPUs for testing.
+### Model Size
+- **4B parameters** = ~8GB GPU memory
+- Fits comfortably on 24GB+ GPUs
+- No need for multi-GPU setup
 
-### 2. **Cold Start Time**
-First request after idle period takes **5-15 minutes** without network volume. Enable network volume for production.
+### Context Length
+- **32K tokens**: Good for most personal use
+- **16K tokens**: Budget GPUs (RTX 4090)
+- **65K tokens**: Extended context (A100 only)
 
-### 3. **Memory Requirements**
-131K context length requires significant VRAM. Monitor for OOM errors and reduce `MAX_MODEL_LEN` if needed.
+### Cold Starts
+- **Without network volume**: 2-5 minutes
+- **With network volume**: 20-30 seconds
+- **Cost**: ~$3/month for 30GB volume
 
-### 4. **Reasoning Parser Compatibility**
-DeepSeek-R1 parser support is new. Test thoroughly before production deployment.
-
-See [POTENTIAL_ISSUES.md](POTENTIAL_ISSUES.md) for complete list.
+### Reasoning Parser
+- DeepSeek-R1 parser extracts thinking process
+- Compatible with Qwen3-based models
+- Test locally first if unsure
 
 ## 🛠️ Troubleshooting
 
-### Cold Starts Too Slow
-- Enable Network Volume in RunPod endpoint settings
-- Pre-bake model into Docker image
-- Increase idle timeout to reduce frequency
+### "Out of Memory" Error
+```bash
+# Reduce context length in environment variables:
+MAX_MODEL_LEN=16384  # From 32768
+GPU_MEMORY_UTILIZATION=0.85  # From 0.90
+```
 
-### Out of Memory Errors
-- Reduce `MAX_MODEL_LEN` from 131072 to 65536 or 32768
-- Lower `GPU_MEMORY_UTILIZATION` from 0.95 to 0.90
-- Verify 8 GPUs are allocated
+### Slow Cold Starts
+```bash
+# Enable network volume in RunPod endpoint settings
+# Size: 30GB, Mount: /runpod-volume
+```
 
-### Workers Not Scaling Down
-- Check idle timeout is set to 900 seconds
-- Verify scaling type is "Queue Delay"
-- Ensure traffic has actual idle periods
+### No Reasoning Output
+```bash
+# Verify environment variables:
+ENABLE_REASONING=true
+REASONING_PARSER=deepseek_r1
+```
 
-### Reasoning Not Working
-- Verify `ENABLE_REASONING=true` and `REASONING_PARSER=deepseek_r1`
-- Update to vLLM 0.8.0 or later
-- Check model compatibility with reasoning parser
+### High Costs
+```bash
+# Reduce idle timeout:
+Idle Timeout: 180  # 3 minutes instead of 5
+# Or use cheaper GPU:
+GPU Type: RTX4090  # Instead of A100
+```
 
-## 🤝 Contributing
+## 📚 Use Cases
 
-Improvements welcome! Areas for contribution:
-- Performance benchmarks
-- Cost optimization strategies
-- Alternative model configurations
-- Integration examples
+### Tool Use & Function Calling
+```python
+# Model supports tool definitions in prompts
+prompt = """
+Available tools:
+- search(query: str) -> List[str]
+- calculate(expression: str) -> float
 
-## 📄 License
+Question: What is the population of Tokyo divided by 2?
+"""
+```
 
-This deployment configuration is provided as-is. Check model license at:
-https://huggingface.co/Intelligent-Internet/II-Search-4B
+### RAG & Vector Store
+```python
+# Works with vector databases and embeddings
+context = retrieve_from_vector_store(query)
+prompt = f"Context: {context}\n\nQuestion: {query}"
+response = query_model(prompt)
+```
+
+### Reasoning Tasks
+```python
+# DeepSeek-R1 parser extracts step-by-step thinking
+prompt = "Solve: If x + 5 = 12, what is x? Think step by step."
+text, reasoning = query_model(prompt)
+print(f"Reasoning:\n{reasoning}")
+print(f"Answer:\n{text}")
+```
 
 ## 🔗 Resources
 
 - **Model**: [Intelligent-Internet/II-Search-4B](https://huggingface.co/Intelligent-Internet/II-Search-4B)
 - **RunPod Docs**: [docs.runpod.io](https://docs.runpod.io)
 - **vLLM Docs**: [docs.vllm.ai](https://docs.vllm.ai)
-- **DeepSeek-R1**: [github.com/deepseek-ai/DeepSeek-R1](https://github.com/deepseek-ai/DeepSeek-R1)
 
-## 📞 Support
+## 💬 Support
 
 - **RunPod Discord**: [discord.gg/runpod](https://discord.gg/runpod)
-- **vLLM GitHub**: [github.com/vllm-project/vllm](https://github.com/vllm-project/vllm)
 - **Issues**: Open an issue in this repository
+
+## 🎓 Recommendations
+
+1. ✅ **Start with RTX 4090** for budget testing
+2. ✅ **Enable network volume** for fast cold starts
+3. ✅ **Use 5-minute idle timeout** for personal use
+4. ✅ **Monitor costs** in RunPod dashboard
+5. ✅ **Test reasoning parser** before heavy use
 
 ---
 
-**Version**: 1.0.0
+**Version**: 2.0.0 (Personal Use Optimized)
 **Last Updated**: 2025-11-09
-**Status**: Production Ready (with considerations - see POTENTIAL_ISSUES.md)
+**Configuration**: Single GPU, 32K context, auto-scaling
+**Target Use Case**: Personal testing, development, tool use, vector stores
